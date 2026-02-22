@@ -1,0 +1,28 @@
+# ServerDash — Caddy Reverse Proxy Configuration
+#
+# Serves the built frontend and proxies API/WebSocket to the backend.
+# Access the dashboard at http://SERVER_IP (port 80, no port in URL).
+
+:80 {
+	# ── API & WebSocket → Backend ─────────────────────────
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8100
+	}
+
+	handle /ws {
+		reverse_proxy 127.0.0.1:8100
+	}
+
+	# ── Frontend static files ─────────────────────────────
+	handle {
+		root * /opt/serverdash/frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+
+	# ── Logging ───────────────────────────────────────────
+	log {
+		output file /var/log/caddy/serverdash.log
+		format console
+	}
+}

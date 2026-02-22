@@ -1,0 +1,198 @@
+/* ═══════════════════════════════════════════════════════════
+   ServerDash Design System — Premium Dark UI
+   Inspired by Apple HIG, Linear, Vercel Dashboard
+   ═══════════════════════════════════════════════════════════ */
+
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  /* Surface layers — subtle depth like macOS panels */
+  --color-bg: #000000;
+  --color-surface-0: #0a0a0c;
+  --color-surface-1: #131316;
+  --color-surface-2: #1a1a1f;
+  --color-surface-3: #222228;
+  --color-surface-4: #2a2a31;
+
+  /* Borders — barely visible structure */
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-default: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(255, 255, 255, 0.13);
+
+  /* Text — 4-level hierarchy for clear scanning */
+  --color-text-primary: #f5f5f7;
+  --color-text-secondary: #a1a1a6;
+  --color-text-tertiary: #6e6e73;
+  --color-text-quaternary: #48484a;
+
+  /* Accent — refined indigo */
+  --color-accent: #6366f1;
+  --color-accent-light: #818cf8;
+  --color-accent-muted: rgba(99, 102, 241, 0.15);
+  --color-accent-glow: rgba(99, 102, 241, 0.25);
+  --color-accent-subtle: rgba(99, 102, 241, 0.08);
+
+  /* Semantic — Apple's exact semantic colours */
+  --color-green: #32d74b;
+  --color-green-muted: rgba(50, 215, 75, 0.12);
+  --color-green-subtle: rgba(50, 215, 75, 0.06);
+  --color-amber: #ffd60a;
+  --color-amber-muted: rgba(255, 214, 10, 0.12);
+  --color-red: #ff453a;
+  --color-red-muted: rgba(255, 69, 58, 0.12);
+  --color-purple: #bf5af2;
+  --color-orange: #ff9f0a;
+  --color-teal: #64d2ff;
+
+  /* Radii — generous, modern */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+}
+
+/* ── Reset ──────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Scrollbar — macOS overlay style ────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Cards ──────────────────────────────────────────────── */
+
+.card {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.card-hover {
+  transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.card-hover:hover {
+  background: var(--color-surface-2);
+  border-color: var(--color-border-hover);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25);
+  transform: translateY(-1px);
+}
+
+.card-flush {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* ── Animations ─────────────────────────────────────────── */
+
+.fade-in {
+  animation: fadeIn 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.pulse-live {
+  animation: pulseLive 2s ease-in-out infinite;
+}
+
+@keyframes pulseLive {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.metric-ring {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* ── Utilities ──────────────────────────────────────────── */
+
+.text-mono {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+.truncate-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Selection ──────────────────────────────────────────── */
+
+::selection {
+  background: var(--color-accent-muted);
+  color: var(--color-accent-light);
+}

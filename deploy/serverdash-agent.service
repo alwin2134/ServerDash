@@ -1,0 +1,29 @@
+[Unit]
+Description=ServerDash Agent
+Documentation=https://github.com/your-repo/serverdash
+After=serverdash.service
+Wants=serverdash.service
+
+[Service]
+Type=simple
+User=serverdash
+Group=serverdash
+WorkingDirectory=/opt/serverdash/agent
+Environment="PATH=/opt/serverdash/venv/bin:/usr/local/bin:/usr/bin"
+Environment="SERVERDASH_URL=http://127.0.0.1:8100"
+
+ExecStart=/opt/serverdash/venv/bin/python agent.py
+
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=serverdash-agent
+
+# Security hardening
+NoNewPrivileges=true
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+# ServerDash
+*.db
+*.db-journal
+__pycache__/
+*.pyc
+venv/
+.agent_key
+.jwt_secret
+node_modules/
+dist/
+.env

@@ -5,7 +5,8 @@ import {
     ListTree,
     Network,
     Bell,
-    Clock,
+    Box,
+    BarChart3,
     Settings,
     Command,
 } from 'lucide-react';
@@ -16,11 +17,12 @@ const mainNav = [
     { to: '/services', icon: Server, label: 'Services' },
     { to: '/processes', icon: ListTree, label: 'Processes' },
     { to: '/ports', icon: Network, label: 'Ports' },
+    { to: '/docker', icon: Box, label: 'Docker' },
     { to: '/alerts', icon: Bell, label: 'Alerts', badge: true },
 ];
 
 const secondaryNav = [
-    { to: '#', icon: Clock, label: 'Timeline', disabled: true },
+    { to: '/history', icon: BarChart3, label: 'History' },
     { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -140,7 +142,7 @@ export default function Sidebar() {
                     }}
                 >
                     <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-quaternary)' }}>
-                        v2.0 · Phase 2
+                        v3.0 · Phase 3
                     </span>
                     <span
                         style={{

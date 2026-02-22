@@ -8,6 +8,7 @@ import json
 from fastapi import APIRouter, Depends
 from auth import require_jwt
 from database import get_db
+from models import KillProcessRequest
 
 router = APIRouter(prefix="/api", tags=["processes"])
 
@@ -43,3 +44,25 @@ async def get_processes(
             }
             for r in rows
         ]
+
+
+@router.post("/processes/{server_id}/kill")
+async def kill_process(
+    server_id: str,
+    req: KillProcessRequest,
+    _user: str = Depends(require_jwt),
+):
+    """Queue a process kill command for the agent."""
+    payload = json.dumps({"pid": req.pid, "signal": req.signal})
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            """INSERT INTO pending_commands (server_id, command_type, payload)
+               VALUES (?, 'kill_process', ?)""",
+            (server_id, payload),
+        )
+        command_id = cursor.lastrowid
+        await db.commit()
+
+    return {"status": "queued", "command_id": command_id}
+

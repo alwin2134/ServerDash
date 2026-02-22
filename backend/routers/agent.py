@@ -88,13 +88,13 @@ async def agent_update(
                  m.ram_percent, m.disk_total, m.disk_used, m.disk_percent,
                  m.net_bytes_sent, m.net_bytes_recv, now),
             )
-            # Prune old snapshots (keep last 720)
+            # Prune old snapshots (keep last 8640 = ~7 days at 5s)
             await db.execute(
                 """DELETE FROM metrics_snapshot
                    WHERE server_id = ? AND id NOT IN (
                        SELECT id FROM metrics_snapshot
                        WHERE server_id = ?
-                       ORDER BY timestamp DESC LIMIT 720
+                       ORDER BY timestamp DESC LIMIT 8640
                    )""",
                 (update.server_id, update.server_id),
             )
@@ -147,6 +147,20 @@ async def agent_update(
                 (update.server_id, ports_payload, now),
             )
             broadcast_data["ports"] = [p.model_dump() for p in update.ports]
+
+        # ── Docker (DB-persisted) ────────────────────────────
+        if update.docker is not None:
+            docker_payload = json.dumps(update.docker)
+            await db.execute(
+                "DELETE FROM docker_snapshot WHERE server_id = ?",
+                (update.server_id,),
+            )
+            await db.execute(
+                """INSERT INTO docker_snapshot (server_id, payload, timestamp)
+                   VALUES (?, ?, ?)""",
+                (update.server_id, docker_payload, now),
+            )
+            broadcast_data["docker"] = update.docker
 
         await db.commit()
 

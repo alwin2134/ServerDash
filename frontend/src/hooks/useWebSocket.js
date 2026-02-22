@@ -11,7 +11,7 @@ export default function useWebSocket() {
     const reconnectTimer = useRef(null);
 
     useEffect(() => {
-        const { setWsConnected, updateMetrics, updateServices, updateProcesses, updatePorts, updateHealth, addAlert } =
+        const { setWsConnected, updateMetrics, updateServices, updateProcesses, updatePorts, updateDocker, updateHealth, addAlert } =
             useServerStore.getState();
 
         function connect() {
@@ -43,6 +43,7 @@ export default function useWebSocket() {
                         if (msg.data.services) updateServices(server_id, msg.data.services);
                         if (msg.data.processes) updateProcesses(server_id, msg.data.processes);
                         if (msg.data.ports) updatePorts(server_id, msg.data.ports);
+                        if (msg.data.docker) updateDocker(server_id, msg.data.docker);
                     }
 
                     if (msg.type === 'health' && msg.data) {

@@ -28,7 +28,7 @@ SyslogIdentifier=serverdash
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/opt/serverdash/backend
+ReadWritePaths=/opt/serverdash
 PrivateTmp=true
 
 [Install]

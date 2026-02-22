@@ -124,7 +124,8 @@ ok "systemd services installed."
 info "Setting file permissions..."
 chown -R serverdash:serverdash "$INSTALL_DIR"
 chown -R caddy:caddy "$CADDY_LOG_DIR"
-chmod 750 "$INSTALL_DIR"
+chmod 755 "$INSTALL_DIR"
+chmod -R 755 "${INSTALL_DIR}/frontend/dist"
 ok "Permissions configured."
 
 # ── 11. Enable & Start Services ──────────────────────────

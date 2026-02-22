@@ -38,6 +38,11 @@ const useServerStore = create((set, get) => ({
     updatePorts: (serverId, data) =>
         set((s) => ({ ports: { ...s.ports, [serverId]: data } })),
 
+    // Phase 3: Docker containers
+    docker: {},
+    updateDocker: (serverId, data) =>
+        set((s) => ({ docker: { ...s.docker, [serverId]: data } })),
+
     // Phase 2: Health state
     health: {},
     updateHealth: (serverId, data) =>

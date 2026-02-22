@@ -65,8 +65,10 @@ export function getPorts(serverId) {
 }
 
 // Phase 2
-export function getHistory(serverId, limit = 60) {
-    return apiFetch(`/api/history/${serverId}?limit=${limit}`);
+export function getHistory(serverId, limit = 60, range = null) {
+    let q = `?limit=${limit}`;
+    if (range) q += `&range=${range}`;
+    return apiFetch(`/api/history/${serverId}${q}`);
 }
 
 export function getAlerts(serverId, limit = 50) {
@@ -85,4 +87,34 @@ export function acknowledgeAlert(alertId) {
 export function acknowledgeAllAlerts(serverId) {
     const q = serverId ? `?server_id=${serverId}` : '';
     return apiFetch(`/api/alerts/acknowledge-all${q}`, { method: 'POST' });
+}
+
+// Phase 3: Docker
+export function getDockerContainers(serverId) {
+    const q = serverId ? `?server_id=${serverId}` : '';
+    return apiFetch(`/api/docker${q}`);
+}
+
+export function dockerAction(serverId, containerId, action) {
+    return apiFetch(`/api/docker/${serverId}/action`, {
+        method: 'POST',
+        body: JSON.stringify({ container_id: containerId, action }),
+    });
+}
+
+export function getDockerLogs(serverId, containerId, lines = 100) {
+    return apiFetch(`/api/docker/${serverId}/logs/${containerId}?lines=${lines}`);
+}
+
+// Phase 3: Process kill
+export function killProcess(serverId, pid, sig = 'SIGTERM') {
+    return apiFetch(`/api/processes/${serverId}/kill`, {
+        method: 'POST',
+        body: JSON.stringify({ pid, signal: sig }),
+    });
+}
+
+// Phase 3: Command status
+export function getCommandStatus(commandId) {
+    return apiFetch(`/api/agent/commands/${commandId}/status`);
 }

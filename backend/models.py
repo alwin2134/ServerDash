@@ -84,6 +84,7 @@ class AgentUpdate(BaseModel):
     services: Optional[list[ServiceInfo]] = None
     processes: Optional[list[ProcessInfo]] = None
     ports: Optional[list[PortInfo]] = None
+    docker: Optional[list] = None  # list of container dicts
 
 
 # ── Auth ──────────────────────────────────────────────────
@@ -121,8 +122,31 @@ class AlertInfo(BaseModel):
     timestamp: Optional[datetime] = None
 
 
-# ── Future Extension Hooks ────────────────────────────────
+# ── Docker ────────────────────────────────────────────────
 
-class PredictionResult(BaseModel):
-    """Phase 3: Predictive analysis output."""
-    pass
+class DockerContainer(BaseModel):
+    container_id: str
+    name: str
+    image: str
+    status: str = "unknown"
+    state: str = "unknown"      # running | exited | paused | created
+    cpu_percent: float = 0.0
+    memory_usage: int = 0       # bytes
+    memory_limit: int = 0       # bytes
+    ports: str = ""
+
+
+class DockerAction(BaseModel):
+    container_id: str
+    action: str                  # start | stop | restart
+
+
+class KillProcessRequest(BaseModel):
+    pid: int
+    signal: str = "SIGTERM"      # SIGTERM | SIGKILL
+
+
+class CommandResponse(BaseModel):
+    command_id: int
+    status: str
+    result: Optional[str] = None

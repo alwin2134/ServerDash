@@ -23,6 +23,8 @@ from collectors.metrics import collect_metrics
 from collectors.services import collect_services
 from collectors.processes import collect_processes
 from collectors.ports import collect_ports
+from collectors.docker import collect_docker
+from executor import executor_loop
 
 
 BASE = DASHBOARD_URL.rstrip("/")
@@ -56,6 +58,7 @@ async def send_update(client: httpx.AsyncClient, include_services: bool = False)
     payload["metrics"] = collect_metrics()
     payload["processes"] = collect_processes()
     payload["ports"] = collect_ports()
+    payload["docker"] = collect_docker()
 
     # Services are scanned less frequently
     if include_services:
@@ -122,6 +125,12 @@ async def main_loop() -> None:
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main_loop())
+        async def run_all():
+            # Run the main data loop and command executor concurrently
+            await asyncio.gather(
+                main_loop(),
+                executor_loop(),
+            )
+        asyncio.run(run_all())
     except KeyboardInterrupt:
         print("\n[agent] Stopped.")

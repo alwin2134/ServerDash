@@ -76,6 +76,24 @@ async def init_db() -> None:
                 timestamp   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS docker_snapshot (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                server_id   TEXT NOT NULL REFERENCES servers(id),
+                payload     TEXT NOT NULL,
+                timestamp   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS pending_commands (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                server_id   TEXT NOT NULL REFERENCES servers(id),
+                command_type TEXT NOT NULL,
+                payload     TEXT NOT NULL DEFAULT '{}',
+                status      TEXT NOT NULL DEFAULT 'pending',
+                result      TEXT,
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP
+            );
+
             CREATE TABLE IF NOT EXISTS events (
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 server_id   TEXT,
@@ -106,6 +124,10 @@ async def init_db() -> None:
                 ON processes_snapshot(server_id, timestamp DESC);
             CREATE INDEX IF NOT EXISTS idx_ports_server
                 ON ports_snapshot(server_id, timestamp DESC);
+            CREATE INDEX IF NOT EXISTS idx_docker_server
+                ON docker_snapshot(server_id, timestamp DESC);
+            CREATE INDEX IF NOT EXISTS idx_commands_server
+                ON pending_commands(server_id, status);
             CREATE INDEX IF NOT EXISTS idx_alerts_server
                 ON alerts(server_id, timestamp DESC);
             CREATE INDEX IF NOT EXISTS idx_alerts_ack

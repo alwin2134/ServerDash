@@ -68,8 +68,10 @@ async def send_update(client: httpx.AsyncClient, include_services: bool = False)
         resp = await client.post(f"{BASE}/api/agent/update", json=payload)
         if resp.status_code == 200:
             svc_marker = " +services" if include_services else ""
+            docker_count = len(payload.get("docker", []))
+            docker_marker = f" +docker({docker_count})" if docker_count else ""
             print(f"[update] OK — CPU: {payload['metrics']['cpu_percent']}%"
-                  f"  RAM: {payload['metrics']['ram_percent']}%{svc_marker}")
+                  f"  RAM: {payload['metrics']['ram_percent']}%{svc_marker}{docker_marker}")
         else:
             print(f"[update] ERROR {resp.status_code}: {resp.text}")
     except Exception as e:

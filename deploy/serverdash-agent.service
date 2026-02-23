@@ -10,6 +10,7 @@ User=serverdash
 Group=serverdash
 WorkingDirectory=/opt/serverdash/agent
 Environment="PATH=/opt/serverdash/venv/bin:/usr/local/bin:/usr/bin"
+Environment="PYTHONUNBUFFERED=1"
 Environment="SERVERDASH_URL=http://127.0.0.1:8100"
 
 ExecStart=/opt/serverdash/venv/bin/python agent.py

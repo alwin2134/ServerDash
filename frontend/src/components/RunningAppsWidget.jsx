@@ -49,7 +49,12 @@ export default function RunningAppsWidget() {
                 color: catalogApp?.color || '#6366f1',
                 image: c.image,
                 hostPort,
+                catalogApp,
             };
+        })
+        .filter((app) => {
+            if (app.catalogApp) return true;
+            return app.hostPort && !['5432', '3306', '6379', '27017', '53'].includes(app.hostPort);
         });
 
     if (installedApps.length === 0) return null;

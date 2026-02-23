@@ -80,6 +80,12 @@ export default function AppStore() {
                     color: catalogApp?.color || '#6366f1',
                     description: catalogApp?.description || c.image,
                 };
+            })
+            .filter((app) => {
+                // Show if explicitly in catalog
+                if (app.catalogApp) return true;
+                // Otherwise only show apps with web UI ports
+                return app.hostPort && !['5432', '3306', '6379', '27017', '53'].includes(app.hostPort);
             });
     };
 

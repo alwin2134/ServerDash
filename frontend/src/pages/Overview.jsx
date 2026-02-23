@@ -3,6 +3,7 @@ import { Cpu, HardDrive, Activity, Sparkles, ArrowUpRight } from 'lucide-react';
 import MetricCard from '../components/MetricCard';
 import StatusBadge from '../components/StatusBadge';
 import Sparkline from '../components/Sparkline';
+import RunningAppsWidget from '../components/RunningAppsWidget';
 import useServerStore from '../store/serverStore';
 import { getHistory } from '../api/client';
 
@@ -149,6 +150,8 @@ export default function Overview() {
                     subtitle={fmtGB(m.disk_total)} data={hist.map((d) => d.disk)}
                 />
             </div>
+
+            {hasData && <RunningAppsWidget />}
 
             {/* ── Bottom Grid ──────────────────────────────────── */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

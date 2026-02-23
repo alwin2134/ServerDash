@@ -150,3 +150,27 @@ class CommandResponse(BaseModel):
     command_id: int
     status: str
     result: Optional[str] = None
+
+
+# ── Phase 4: Deploy & App Store ───────────────────────────
+
+class DockerDeployRequest(BaseModel):
+    image: str
+    name: str
+    ports: Optional[dict] = None          # {"8080/tcp": 8080}
+    env: Optional[dict] = None            # {"KEY": "value"}
+    volumes: Optional[list[str]] = None   # ["/host:/container"]
+    restart_policy: str = "unless-stopped" # no | always | unless-stopped | on-failure
+
+class DockerRemoveRequest(BaseModel):
+    container_id: str
+    force: bool = True
+
+class InstallAppRequest(BaseModel):
+    package_name: str
+    method: str = "docker"                # docker | apt
+    image: Optional[str] = None
+    ports: Optional[dict] = None
+    env: Optional[dict] = None
+    volumes: Optional[list[str]] = None
+

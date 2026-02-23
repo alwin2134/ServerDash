@@ -32,6 +32,7 @@ from routers.history import router as history_router
 from routers.alerts import router as alerts_router
 from routers.docker import router as docker_router
 from routers.agent_commands import router as agent_commands_router
+from routers.apps import router as apps_router
 
 
 # ── Rate Limiting ─────────────────────────────────────────
@@ -123,6 +124,7 @@ app.include_router(history_router)
 app.include_router(alerts_router)
 app.include_router(docker_router)
 app.include_router(agent_commands_router)
+app.include_router(apps_router)
 
 
 # ── Auth endpoint ─────────────────────────────────────────

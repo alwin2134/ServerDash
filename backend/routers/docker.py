@@ -96,3 +96,80 @@ async def get_docker_logs(
         await db.commit()
 
     return {"status": "queued", "command_id": command_id}
+
+
+from models import DockerDeployRequest, DockerRemoveRequest
+
+
+@router.post("/docker/{server_id}/deploy-container")
+async def deploy_container(
+    server_id: str,
+    req: DockerDeployRequest,
+    _user: str = Depends(require_jwt),
+):
+    """Queue a Docker container deployment with full configuration."""
+    payload = json.dumps({
+        "image": req.image,
+        "name": req.name,
+        "ports": req.ports,
+        "env": req.env,
+        "volumes": req.volumes,
+        "restart_policy": req.restart_policy,
+    })
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            """INSERT INTO pending_commands (server_id, command_type, payload)
+               VALUES (?, 'docker_deploy', ?)""",
+            (server_id, payload),
+        )
+        command_id = cursor.lastrowid
+        await db.commit()
+
+    return {"status": "queued", "command_id": command_id}
+
+
+@router.post("/docker/{server_id}/remove")
+async def remove_container(
+    server_id: str,
+    req: DockerRemoveRequest,
+    _user: str = Depends(require_jwt),
+):
+    """Queue container removal."""
+    payload = json.dumps({
+        "container_id": req.container_id,
+        "force": req.force,
+    })
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            """INSERT INTO pending_commands (server_id, command_type, payload)
+               VALUES (?, 'docker_remove', ?)""",
+            (server_id, payload),
+        )
+        command_id = cursor.lastrowid
+        await db.commit()
+
+    return {"status": "queued", "command_id": command_id}
+
+
+@router.post("/docker/{server_id}/pull")
+async def pull_image(
+    server_id: str,
+    image: str = Query(...),
+    _user: str = Depends(require_jwt),
+):
+    """Queue an image pull."""
+    payload = json.dumps({"image": image})
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            """INSERT INTO pending_commands (server_id, command_type, payload)
+               VALUES (?, 'docker_pull', ?)""",
+            (server_id, payload),
+        )
+        command_id = cursor.lastrowid
+        await db.commit()
+
+    return {"status": "queued", "command_id": command_id}
+

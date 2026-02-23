@@ -3,14 +3,19 @@ ServerDash Agent — Command executor.
 
 Polls the backend for pending commands and executes them:
 - docker_action: start/stop/restart containers
+- docker_deploy: pull image + create + start container
+- docker_remove: remove a container
+- docker_pull: pull an image
 - docker_logs: fetch container logs
 - kill_process: terminate a process by PID
+- apt_install: install a system package
 """
 
 import asyncio
 import json
 import os
 import signal
+import subprocess
 import sys
 
 import httpx
@@ -55,10 +60,18 @@ async def execute_command(client: httpx.AsyncClient, cmd: dict) -> None:
     try:
         if cmd_type == "docker_action":
             _exec_docker_action(payload)
+        elif cmd_type == "docker_deploy":
+            _exec_docker_deploy(payload)
+        elif cmd_type == "docker_remove":
+            _exec_docker_remove(payload)
+        elif cmd_type == "docker_pull":
+            _exec_docker_pull(payload)
         elif cmd_type == "docker_logs":
             _exec_docker_logs(payload)
         elif cmd_type == "kill_process":
             _exec_kill_process(payload)
+        elif cmd_type == "apt_install":
+            _exec_apt_install(payload)
         else:
             print(f"[executor] Unknown command type: {cmd_type}")
 
@@ -98,8 +111,85 @@ def _exec_docker_action(payload: dict) -> None:
     print(f"[executor] Docker {action} on {container_id}: OK")
 
 
+def _exec_docker_deploy(payload: dict) -> None:
+    """Pull image and create + start a container."""
+    if not _DOCKER_AVAILABLE:
+        print("[executor] Docker not available")
+        return
+
+    client = docker_sdk.from_env()
+    image = payload["image"]
+    name = payload["name"]
+
+    # Pull the image first
+    print(f"[executor] Pulling image {image}...")
+    client.images.pull(image)
+    print(f"[executor] Image {image} pulled successfully")
+
+    # Build port bindings: {"8080/tcp": 8080} -> {"8080/tcp": ("0.0.0.0", 8080)}
+    ports = payload.get("ports") or {}
+    port_bindings = {}
+    for container_port, host_port in ports.items():
+        port_bindings[container_port] = ("0.0.0.0", int(host_port))
+
+    # Environment variables
+    env = payload.get("env") or {}
+    env_list = [f"{k}={v}" for k, v in env.items()]
+
+    # Volumes
+    volumes = payload.get("volumes") or []
+    volume_binds = {}
+    for v in volumes:
+        if ":" in v:
+            parts = v.split(":", 1)
+            volume_binds[parts[0]] = {"bind": parts[1], "mode": "rw"}
+
+    # Restart policy
+    restart = payload.get("restart_policy", "unless-stopped")
+    restart_policy = {"Name": restart}
+    if restart == "on-failure":
+        restart_policy["MaximumRetryCount"] = 5
+
+    # Create and start
+    container = client.containers.run(
+        image,
+        name=name,
+        ports=port_bindings,
+        environment=env_list if env_list else None,
+        volumes=volume_binds if volume_binds else None,
+        restart_policy=restart_policy,
+        detach=True,
+    )
+    print(f"[executor] Container {name} ({container.short_id}) deployed and running")
+
+
+def _exec_docker_remove(payload: dict) -> None:
+    """Remove a container."""
+    if not _DOCKER_AVAILABLE:
+        return
+
+    client = docker_sdk.from_env()
+    container_id = payload["container_id"]
+    force = payload.get("force", True)
+
+    container = client.containers.get(container_id)
+    container.remove(force=force)
+    print(f"[executor] Container {container_id} removed")
+
+
+def _exec_docker_pull(payload: dict) -> None:
+    """Pull a Docker image."""
+    if not _DOCKER_AVAILABLE:
+        return
+
+    client = docker_sdk.from_env()
+    image = payload["image"]
+    client.images.pull(image)
+    print(f"[executor] Image {image} pulled")
+
+
 def _exec_docker_logs(payload: dict) -> None:
-    """Fetch container logs (currently just prints; future: store result)."""
+    """Fetch container logs."""
     if not _DOCKER_AVAILABLE:
         return
 
@@ -116,7 +206,6 @@ def _exec_kill_process(payload: dict) -> None:
     sig_name = payload.get("signal", "SIGTERM")
 
     if sys.platform == "win32":
-        # Windows doesn't have SIGTERM, use taskkill
         os.system(f"taskkill /PID {pid} /F")
     else:
         sig = getattr(signal, sig_name, signal.SIGTERM)
@@ -127,3 +216,27 @@ def _exec_kill_process(payload: dict) -> None:
             print(f"[executor] PID {pid} not found")
         except PermissionError:
             print(f"[executor] Permission denied for PID {pid}")
+
+
+def _exec_apt_install(payload: dict) -> None:
+    """Install a system package via apt."""
+    package = payload["package"]
+
+    # Sanitize package name (basic safety)
+    if not all(c.isalnum() or c in "-._+" for c in package):
+        print(f"[executor] Invalid package name: {package}")
+        return
+
+    print(f"[executor] Installing package {package} via apt...")
+    result = subprocess.run(
+        ["sudo", "apt", "install", "-y", package],
+        capture_output=True,
+        text=True,
+        timeout=300,  # 5 min timeout
+    )
+
+    if result.returncode == 0:
+        print(f"[executor] Package {package} installed successfully")
+    else:
+        print(f"[executor] apt install failed: {result.stderr[:500]}")
+

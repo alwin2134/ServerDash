@@ -118,3 +118,30 @@ export function killProcess(serverId, pid, sig = 'SIGTERM') {
 export function getCommandStatus(commandId) {
     return apiFetch(`/api/agent/commands/${commandId}/status`);
 }
+
+// Phase 4: Docker deploy/remove
+export function dockerDeploy(serverId, config) {
+    return apiFetch(`/api/docker/${serverId}/deploy-container`, {
+        method: 'POST',
+        body: JSON.stringify(config),
+    });
+}
+
+export function dockerRemove(serverId, containerId, force = true) {
+    return apiFetch(`/api/docker/${serverId}/remove`, {
+        method: 'POST',
+        body: JSON.stringify({ container_id: containerId, force }),
+    });
+}
+
+// Phase 4: App Store
+export function getAppCatalog() {
+    return apiFetch('/api/apps/catalog');
+}
+
+export function installApp(serverId, appConfig) {
+    return apiFetch(`/api/apps/${serverId}/install`, {
+        method: 'POST',
+        body: JSON.stringify(appConfig),
+    });
+}

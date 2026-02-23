@@ -7,6 +7,7 @@ import {
     Bell,
     Box,
     BarChart3,
+    Download,
     Settings,
     Command,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ const mainNav = [
 ];
 
 const secondaryNav = [
+    { to: '/apps', icon: Download, label: 'App Store' },
     { to: '/history', icon: BarChart3, label: 'History' },
     { to: '/settings', icon: Settings, label: 'Settings' },
 ];

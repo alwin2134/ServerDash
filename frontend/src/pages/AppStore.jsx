@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, Search, Package, Check, Loader } from 'lucide-react';
+import { Download, Search, Package, Check, Loader, ExternalLink, Box } from 'lucide-react';
 import useServerStore from '../store/serverStore';
 import { getAppCatalog, installApp, getDockerContainers } from '../api/client';
 
@@ -18,13 +18,14 @@ const categoryIcons = {
 
 export default function AppStore() {
     const activeServerId = useServerStore((s) => s.activeServerId);
+    const servers = useServerStore((s) => s.servers);
     const [apps, setApps] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [q, setQ] = useState('');
     const [loading, setLoading] = useState(true);
     const [installing, setInstalling] = useState(null);
-    const [installedImages, setInstalledImages] = useState(new Set());
+    const [containers, setContainers] = useState([]);
     const [justQueued, setJustQueued] = useState(new Set());
 
     // Load catalog
@@ -42,25 +43,48 @@ export default function AppStore() {
         })();
     }, []);
 
-    // Check which apps are already running as Docker containers
+    // Poll Docker containers
     useEffect(() => {
         if (!activeServerId) return;
-        const checkInstalled = async () => {
+        const check = async () => {
             try {
                 const res = await getDockerContainers(activeServerId);
-                const containers = res.containers || [];
-                const images = new Set(
-                    containers.map((c) => c.image?.split(':')[0]?.toLowerCase())
-                );
-                setInstalledImages(images);
-            } catch (e) {
-                // Docker might not be available
-            }
+                setContainers(res.containers || []);
+            } catch (e) { /* Docker not available */ }
         };
-        checkInstalled();
-        const interval = setInterval(checkInstalled, 8000);
+        check();
+        const interval = setInterval(check, 8000);
         return () => clearInterval(interval);
     }, [activeServerId]);
+
+    // Get server IP for open links
+    const activeServer = servers.find((s) => s.id === activeServerId);
+    const serverHost = activeServer?.ip_address || window.location.hostname;
+
+    // Match containers to catalog apps
+    const getInstalledApps = () => {
+        return containers
+            .filter((c) => c.state === 'running')
+            .map((c) => {
+                const baseImage = c.image?.split(':')[0]?.toLowerCase();
+                const catalogApp = apps.find((a) => a.image?.split(':')[0]?.toLowerCase() === baseImage);
+                // Parse first host port from container ports string: "8080->80/tcp"
+                const portMatch = c.ports?.match(/(\d+)->/);
+                const hostPort = portMatch ? portMatch[1] : null;
+                return {
+                    container: c,
+                    catalogApp,
+                    hostPort,
+                    name: catalogApp?.name || c.name,
+                    icon: catalogApp?.icon || '📦',
+                    color: catalogApp?.color || '#6366f1',
+                    description: catalogApp?.description || c.image,
+                };
+            });
+    };
+
+    const installedApps = getInstalledApps();
+    const installedImages = new Set(containers.map((c) => c.image?.split(':')[0]?.toLowerCase()));
 
     const isAppInstalled = (app) => {
         const baseImage = app.image?.split(':')[0]?.toLowerCase();
@@ -127,6 +151,31 @@ export default function AppStore() {
                 </div>
             </div>
 
+            {/* ── Installed Apps ──────────────────────────────── */}
+            {installedApps.length > 0 && (
+                <div>
+                    <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Box size={16} style={{ color: '#34c759' }} />
+                        Running Apps
+                        <span style={{
+                            fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                            background: 'rgba(52, 199, 89, 0.12)', color: '#34c759',
+                        }}>
+                            {installedApps.length}
+                        </span>
+                    </h2>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                        gap: 12,
+                    }}>
+                        {installedApps.map((app) => (
+                            <InstalledAppCard key={app.container.container_id} app={app} serverHost={serverHost} />
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Category Tabs */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {categories.map((cat) => (
@@ -168,7 +217,7 @@ export default function AppStore() {
                     gap: 16,
                 }}>
                     {filtered.map((app) => (
-                        <AppCard
+                        <CatalogAppCard
                             key={app.id}
                             app={app}
                             onInstall={() => handleInstall(app)}
@@ -183,7 +232,77 @@ export default function AppStore() {
     );
 }
 
-function AppCard({ app, onInstall, isInstalling, isInstalled, isQueued }) {
+
+/* ── Installed App Card (compact, with Open button) ─────── */
+function InstalledAppCard({ app, serverHost }) {
+    const hasWebUI = app.hostPort && !['5432', '3306', '6379', '27017', '53'].includes(app.hostPort);
+    const openUrl = hasWebUI ? `http://${serverHost}:${app.hostPort}` : null;
+
+    return (
+        <div style={{
+            background: 'var(--color-surface-1)',
+            border: '1px solid var(--color-border-subtle)',
+            borderRadius: 14,
+            padding: 16,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            position: 'relative',
+            overflow: 'hidden',
+            transition: 'all 0.2s ease',
+        }}>
+            {/* Green accent bar */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#34c759' }} />
+
+            <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: `${app.color}18`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 20, flexShrink: 0,
+            }}>
+                {app.icon}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {app.name}
+                </h3>
+                <span className="text-mono" style={{ fontSize: 11, color: 'var(--color-text-quaternary)' }}>
+                    {app.hostPort ? `:${app.hostPort}` : app.container.image}
+                </span>
+            </div>
+
+            {openUrl ? (
+                <a
+                    href={openUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                        padding: '6px 12px', borderRadius: 8, border: 'none',
+                        background: `${app.color}18`, color: app.color,
+                        fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        textDecoration: 'none', flexShrink: 0,
+                        transition: 'all 0.2s ease',
+                    }}
+                >
+                    <ExternalLink size={12} /> Open
+                </a>
+            ) : (
+                <span style={{
+                    padding: '4px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600,
+                    background: 'rgba(52, 199, 89, 0.12)', color: '#34c759',
+                }}>
+                    Running
+                </span>
+            )}
+        </div>
+    );
+}
+
+
+/* ── Catalog App Card (full size, with Install button) ──── */
+function CatalogAppCard({ app, onInstall, isInstalling, isInstalled, isQueued }) {
     const getButtonState = () => {
         if (isInstalled) return { label: 'Running', icon: <Check size={13} />, bg: 'rgba(52, 199, 89, 0.12)', color: '#34c759', disabled: true };
         if (isInstalling) return { label: 'Installing…', icon: <Loader size={13} className="spin" />, bg: 'var(--color-surface-2)', color: 'var(--color-text-quaternary)', disabled: true };
@@ -206,7 +325,6 @@ function AppCard({ app, onInstall, isInstalling, isInstalled, isQueued }) {
             position: 'relative',
             overflow: 'hidden',
         }}>
-            {/* Color accent bar */}
             <div style={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: 3,
                 background: isInstalled ? '#34c759' : (app.color || 'var(--color-accent)'),
@@ -257,17 +375,11 @@ function AppCard({ app, onInstall, isInstalling, isInstalled, isQueued }) {
                     onClick={onInstall}
                     disabled={btn.disabled}
                     style={{
-                        padding: '6px 14px',
-                        borderRadius: 10,
-                        border: 'none',
-                        background: btn.bg,
-                        color: btn.color,
-                        fontSize: 12,
-                        fontWeight: 700,
+                        padding: '6px 14px', borderRadius: 10, border: 'none',
+                        background: btn.bg, color: btn.color,
+                        fontSize: 12, fontWeight: 700,
                         cursor: btn.disabled ? 'default' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 5,
+                        display: 'flex', alignItems: 'center', gap: 5,
                         transition: 'all 0.2s ease',
                     }}
                 >

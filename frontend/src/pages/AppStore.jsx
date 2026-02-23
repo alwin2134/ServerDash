@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Download, Search, Package, Check, Loader } from 'lucide-react';
 import useServerStore from '../store/serverStore';
-import { getAppCatalog, installApp } from '../api/client';
+import { getAppCatalog, installApp, getDockerContainers } from '../api/client';
 
 const categoryIcons = {
     'Web Servers': '🌐',
@@ -23,9 +23,11 @@ export default function AppStore() {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [q, setQ] = useState('');
     const [loading, setLoading] = useState(true);
-    const [installing, setInstalling] = useState(null); // app id currently installing
-    const [installed, setInstalled] = useState(new Set()); // successfully installed ids
+    const [installing, setInstalling] = useState(null);
+    const [installedImages, setInstalledImages] = useState(new Set());
+    const [justQueued, setJustQueued] = useState(new Set());
 
+    // Load catalog
     useEffect(() => {
         (async () => {
             try {
@@ -40,6 +42,31 @@ export default function AppStore() {
         })();
     }, []);
 
+    // Check which apps are already running as Docker containers
+    useEffect(() => {
+        if (!activeServerId) return;
+        const checkInstalled = async () => {
+            try {
+                const res = await getDockerContainers(activeServerId);
+                const containers = res.containers || [];
+                const images = new Set(
+                    containers.map((c) => c.image?.split(':')[0]?.toLowerCase())
+                );
+                setInstalledImages(images);
+            } catch (e) {
+                // Docker might not be available
+            }
+        };
+        checkInstalled();
+        const interval = setInterval(checkInstalled, 8000);
+        return () => clearInterval(interval);
+    }, [activeServerId]);
+
+    const isAppInstalled = (app) => {
+        const baseImage = app.image?.split(':')[0]?.toLowerCase();
+        return installedImages.has(baseImage);
+    };
+
     const handleInstall = async (app) => {
         if (!activeServerId) return;
         setInstalling(app.id);
@@ -52,7 +79,7 @@ export default function AppStore() {
                 env: app.env,
                 volumes: app.volumes,
             });
-            setInstalled((prev) => new Set([...prev, app.id]));
+            setJustQueued((prev) => new Set([...prev, app.id]));
         } catch (e) {
             console.error(`Failed to install ${app.name}:`, e);
         } finally {
@@ -146,7 +173,8 @@ export default function AppStore() {
                             app={app}
                             onInstall={() => handleInstall(app)}
                             isInstalling={installing === app.id}
-                            isInstalled={installed.has(app.id)}
+                            isInstalled={isAppInstalled(app)}
+                            isQueued={justQueued.has(app.id)}
                         />
                     ))}
                 </div>
@@ -155,7 +183,16 @@ export default function AppStore() {
     );
 }
 
-function AppCard({ app, onInstall, isInstalling, isInstalled }) {
+function AppCard({ app, onInstall, isInstalling, isInstalled, isQueued }) {
+    const getButtonState = () => {
+        if (isInstalled) return { label: 'Running', icon: <Check size={13} />, bg: 'rgba(52, 199, 89, 0.12)', color: '#34c759', disabled: true };
+        if (isInstalling) return { label: 'Installing…', icon: <Loader size={13} className="spin" />, bg: 'var(--color-surface-2)', color: 'var(--color-text-quaternary)', disabled: true };
+        if (isQueued) return { label: 'Deploying…', icon: <Loader size={13} className="spin" />, bg: 'rgba(99, 102, 241, 0.12)', color: '#6366f1', disabled: true };
+        return { label: 'Install', icon: <Download size={13} />, bg: `${app.color || '#6366f1'}18`, color: app.color || '#6366f1', disabled: false };
+    };
+
+    const btn = getButtonState();
+
     return (
         <div style={{
             background: 'var(--color-surface-1)',
@@ -172,7 +209,7 @@ function AppCard({ app, onInstall, isInstalling, isInstalled }) {
             {/* Color accent bar */}
             <div style={{
                 position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                background: app.color || 'var(--color-accent)',
+                background: isInstalled ? '#34c759' : (app.color || 'var(--color-accent)'),
             }} />
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -185,9 +222,20 @@ function AppCard({ app, onInstall, isInstalling, isInstalled }) {
                     {app.icon}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
-                        {app.name}
-                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-primary)' }}>
+                            {app.name}
+                        </h3>
+                        {isInstalled && (
+                            <span style={{
+                                fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                                background: 'rgba(52, 199, 89, 0.12)', color: '#34c759',
+                                textTransform: 'uppercase', letterSpacing: '0.05em',
+                            }}>
+                                Active
+                            </span>
+                        )}
+                    </div>
                     <span style={{
                         fontSize: 11, fontWeight: 600, color: app.color || 'var(--color-text-tertiary)',
                         opacity: 0.8,
@@ -207,39 +255,23 @@ function AppCard({ app, onInstall, isInstalling, isInstalled }) {
                 </span>
                 <button
                     onClick={onInstall}
-                    disabled={isInstalling || isInstalled}
+                    disabled={btn.disabled}
                     style={{
                         padding: '6px 14px',
                         borderRadius: 10,
                         border: 'none',
-                        background: isInstalled
-                            ? 'rgba(52, 199, 89, 0.12)'
-                            : isInstalling
-                                ? 'var(--color-surface-2)'
-                                : `${app.color || '#6366f1'}18`,
-                        color: isInstalled ? '#34c759' : isInstalling ? 'var(--color-text-quaternary)' : (app.color || '#6366f1'),
+                        background: btn.bg,
+                        color: btn.color,
                         fontSize: 12,
                         fontWeight: 700,
-                        cursor: isInstalling || isInstalled ? 'default' : 'pointer',
+                        cursor: btn.disabled ? 'default' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 5,
                         transition: 'all 0.2s ease',
                     }}
                 >
-                    {isInstalled ? (
-                        <>
-                            <Check size={13} /> Queued
-                        </>
-                    ) : isInstalling ? (
-                        <>
-                            <Loader size={13} className="spin" /> Installing
-                        </>
-                    ) : (
-                        <>
-                            <Download size={13} /> Install
-                        </>
-                    )}
+                    {btn.icon} {btn.label}
                 </button>
             </div>
         </div>

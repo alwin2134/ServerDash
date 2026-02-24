@@ -18,6 +18,25 @@ const useServerStore = create((set, get) => ({
         });
     },
 
+    upsertServer: (serverData) => {
+        const state = get();
+        // The event sends `server_id`, map it to `id` for consistency
+        const server = { id: serverData.server_id, ...serverData };
+        const exists = state.servers.find(s => s.id === server.id);
+
+        let newServers;
+        if (exists) {
+            newServers = state.servers.map(s => s.id === server.id ? { ...s, ...server } : s);
+        } else {
+            newServers = [...state.servers, server];
+        }
+
+        set({
+            servers: newServers,
+            activeServerId: state.activeServerId || server.id
+        });
+    },
+
     setActiveServer: (id) => set({ activeServerId: id }),
 
     // Real-time data

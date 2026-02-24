@@ -11,7 +11,7 @@ export default function useWebSocket() {
     const reconnectTimer = useRef(null);
 
     useEffect(() => {
-        const { setWsConnected, updateMetrics, updateServices, updateProcesses, updatePorts, updateDocker, updateHealth, addAlert } =
+        const { setWsConnected, updateMetrics, updateServices, updateProcesses, updatePorts, updateDocker, updateHealth, addAlert, upsertServer } =
             useServerStore.getState();
 
         function connect() {
@@ -48,6 +48,10 @@ export default function useWebSocket() {
 
                     if (msg.type === 'health' && msg.data) {
                         updateHealth(msg.data.server_id, msg.data);
+                    }
+
+                    if (msg.type === 'server_status' && msg.data) {
+                        upsertServer(msg.data);
                     }
 
                     if (msg.type === 'alert' && msg.data) {

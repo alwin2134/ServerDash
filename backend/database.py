@@ -121,6 +121,16 @@ async def init_db() -> None:
                 timestamp   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS insights (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                server_id   TEXT NOT NULL REFERENCES servers(id),
+                type        TEXT NOT NULL,
+                severity    TEXT DEFAULT 'info',
+                message     TEXT NOT NULL,
+                metric      TEXT,
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             -- Indices
             CREATE INDEX IF NOT EXISTS idx_metrics_server
                 ON metrics_snapshot(server_id, timestamp DESC);
@@ -140,6 +150,8 @@ async def init_db() -> None:
                 ON alerts(acknowledged, timestamp DESC);
             CREATE INDEX IF NOT EXISTS idx_events_server
                 ON events(server_id, timestamp DESC);
+            CREATE INDEX IF NOT EXISTS idx_insights_server
+                ON insights(server_id, created_at DESC);
         """)
 
         # Migration stubs for Phase 1-5 upgrades

@@ -153,3 +153,12 @@ export function getEvents(serverId = null, limit = 50, cursor = null) {
     if (cursor) q += `&cursor=${cursor}`;
     return apiFetch(`/api/events${q}`);
 }
+
+// Phase 6: Intelligent Insights
+export function getInsights(serverId) {
+    return apiFetch(`/api/servers/${serverId}/insights`);
+}
+
+export function dismissInsight(insightId) {
+    return apiFetch(`/api/insights/${insightId}`, { method: 'DELETE' });
+}

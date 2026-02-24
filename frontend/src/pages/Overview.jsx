@@ -4,6 +4,7 @@ import MetricCard from '../components/MetricCard';
 import StatusBadge from '../components/StatusBadge';
 import Sparkline from '../components/Sparkline';
 import RunningAppsWidget from '../components/RunningAppsWidget';
+import IntelligentInsights from '../components/IntelligentInsights';
 import useServerStore from '../store/serverStore';
 import { getHistory } from '../api/client';
 
@@ -194,39 +195,30 @@ export default function Overview() {
                     )}
                 </div>
 
-                {/* Network Stats */}
-                <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-                    {hasData && m.net_sent != null ? (
-                        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20, flex: 1 }}>
-                            <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--color-text-secondary)' }}>
-                                Network
-                            </span>
-                            <NetStat label="Data Sent" value={fmtBytes(m.net_sent)} color="var(--color-teal)" />
-                            <NetStat label="Data Received" value={fmtBytes(m.net_recv)} color="var(--color-accent-light)" />
-                            <div style={{ flex: 1 }} />
-                            <div style={{ fontSize: 11, color: 'var(--color-text-quaternary)' }}>
-                                Since agent start
-                            </div>
-                        </div>
-                    ) : (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, opacity: 0.45 }}>
-                            <div style={{
-                                width: 52, height: 52, borderRadius: 18,
-                                background: 'var(--color-accent-muted)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                                <Sparkles size={22} style={{ color: 'var(--color-accent-light)' }} />
-                            </div>
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)' }}>
-                                    Intelligent Insights
+                {/* Right Column: Network & Insights */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {/* Network Stats */}
+                    {hasData && m.net_sent != null && (
+                        <div className="card" style={{ padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                                <span style={{ fontSize: 13, fontWeight: 650, color: 'var(--color-text-secondary)' }}>
+                                    Network
+                                </span>
+                                <div style={{ fontSize: 11, color: 'var(--color-text-quaternary)', marginTop: 4 }}>
+                                    Since agent start
                                 </div>
-                                <div style={{ fontSize: 11, color: 'var(--color-text-quaternary)', marginTop: 4, maxWidth: 200 }}>
-                                    AI-powered analysis coming in Phase 3
-                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 32, textAlign: 'right' }}>
+                                <NetStat label="Sent" value={fmtBytes(m.net_sent)} color="var(--color-teal)" />
+                                <NetStat label="Received" value={fmtBytes(m.net_recv)} color="var(--color-accent-light)" />
                             </div>
                         </div>
                     )}
+
+                    {/* Insights Widget */}
+                    <div style={{ flex: 1, minHeight: 0 }}>
+                        <IntelligentInsights />
+                    </div>
                 </div>
             </div>
         </div>

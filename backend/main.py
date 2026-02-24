@@ -36,6 +36,7 @@ from routers.docker import router as docker_router
 from routers.agent_commands import router as agent_commands_router
 from routers.apps import router as apps_router
 from routers.events import router as events_router
+from routers.insights import router as insights_router
 
 
 # ── Rate Limiting ─────────────────────────────────────────
@@ -133,6 +134,7 @@ app.include_router(docker_router)
 app.include_router(agent_commands_router)
 app.include_router(apps_router)
 app.include_router(events_router)
+app.include_router(insights_router)
 
 
 # ── Auth endpoint ─────────────────────────────────────────

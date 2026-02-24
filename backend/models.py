@@ -191,3 +191,14 @@ class InstallAppRequest(BaseModel):
     env: Optional[dict] = None
     volumes: Optional[list[str]] = None
 
+
+# ── Phase 6: Intelligent Insights ────────────────────────
+class Insight(BaseModel):
+    id: int
+    server_id: str
+    type: str                    # anomaly | prediction | optimization
+    severity: str = "info"       # info | warning | critical
+    message: str
+    metric: Optional[str] = None
+    created_at: datetime
+

@@ -34,20 +34,23 @@ export default function Timeline() {
 
     const getIconForEvent = (type) => {
         switch (type) {
-            case 'alert_created': return <AlertCircle className="w-5 h-5 text-red-500" />;
-            case 'alert_resolved': return <Activity className="w-5 h-5 text-green-500" />;
-            case 'state_changed': return <RefreshCw className="w-5 h-5 text-blue-500" />;
-            case 'agent_offline': return <PowerOff className="w-5 h-5 text-gray-500" />;
-            case 'agent_online': return <Power className="w-5 h-5 text-green-500" />;
-            default: return <Info className="w-5 h-5 text-gray-400" />;
+            case 'alert_created': return <AlertCircle size={18} color="var(--color-red)" />;
+            case 'alert_resolved': return <Activity size={18} color="var(--color-green)" />;
+            case 'state_changed': return <RefreshCw size={18} color="var(--color-accent)" />;
+            case 'agent_offline': return <PowerOff size={18} color="var(--color-text-tertiary)" />;
+            case 'agent_online': return <Power size={18} color="var(--color-green)" />;
+            default: return <Info size={18} color="var(--color-text-tertiary)" />;
         }
     };
 
-    const getSeverityColor = (severity) => {
+    const getSeverityStyles = (severity) => {
         switch (severity) {
-            case 'critical': return 'border-red-500/50 bg-red-500/10 text-red-400';
-            case 'warning': return 'border-amber-500/50 bg-amber-500/10 text-amber-400';
-            default: return 'border-blue-500/30 bg-blue-500/10 text-blue-400';
+            case 'critical':
+                return { border: '1px solid var(--color-red-muted)', background: 'rgba(255, 69, 58, 0.05)' };
+            case 'warning':
+                return { border: '1px solid var(--color-amber-muted)', background: 'rgba(255, 214, 10, 0.05)' };
+            default:
+                return {};
         }
     };
 
@@ -57,16 +60,29 @@ export default function Timeline() {
     };
 
     return (
-        <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
-            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 860, margin: '0 auto' }}>
+            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                 <div>
-                    <h1 className="text-2xl font-bold text-white tracking-tight">Timeline</h1>
-                    <p className="text-slate-400 text-sm mt-1">Chronological history of operational events across your infrastructure.</p>
+                    <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--color-text-primary)' }}>
+                        Timeline
+                    </h1>
+                    <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+                        Chronological history of operational events across your infrastructure.
+                    </p>
                 </div>
 
-                <div className="flex gap-2">
+                <div style={{ display: 'flex', gap: 12 }}>
                     <select
-                        className="bg-slate-800/80 border border-slate-700/50 text-slate-300 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block px-3 py-2 outline-none transition-colors"
+                        style={{
+                            background: 'var(--color-surface-2)',
+                            border: '1px solid var(--color-border-default)',
+                            color: 'var(--color-text-primary)',
+                            fontSize: 13,
+                            borderRadius: 10,
+                            padding: '8px 12px',
+                            outline: 'none',
+                            cursor: 'pointer'
+                        }}
                         value={selectedServer}
                         onChange={e => setSelectedServer(e.target.value)}
                     >
@@ -79,67 +95,136 @@ export default function Timeline() {
                     <button
                         onClick={fetchEvents}
                         disabled={loading}
-                        className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition flex items-center justify-center disabled:opacity-50"
+                        style={{
+                            padding: '8px 12px',
+                            background: 'var(--color-surface-2)',
+                            color: 'var(--color-text-primary)',
+                            borderRadius: 10,
+                            border: '1px solid var(--color-border-default)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: loading ? 'default' : 'pointer',
+                            opacity: loading ? 0.5 : 1,
+                            transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => !loading && (e.currentTarget.style.background = 'var(--color-surface-3)')}
+                        onMouseLeave={(e) => !loading && (e.currentTarget.style.background = 'var(--color-surface-2)')}
                         title="Refresh"
                     >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        <RefreshCw size={16} className={loading ? 'pulse-live' : ''} />
                     </button>
                 </div>
             </header>
 
             {error && (
-                <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                        <AlertCircle className="w-5 h-5" />
-                        <span className="text-sm font-medium">{error}</span>
+                <div style={{
+                    background: 'var(--color-red-muted)',
+                    border: '1px solid var(--color-red)',
+                    color: 'var(--color-red)',
+                    padding: '12px 16px',
+                    borderRadius: 'var(--radius-lg)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <AlertCircle size={18} />
+                        <span style={{ fontSize: 13, fontWeight: 500 }}>{error}</span>
                     </div>
-                    <button onClick={() => setError('')} className="text-red-400 hover:text-red-300">
-                        &times;
-                    </button>
                 </div>
             )}
 
             {loading && events.length === 0 ? (
-                <div className="flex justify-center p-12">
-                    <RefreshCw className="w-8 h-8 text-blue-500 animate-spin" />
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+                    <RefreshCw size={24} style={{ color: 'var(--color-accent)', animation: 'spin 1s linear infinite' }} className="pulse-live" />
                 </div>
             ) : events.length === 0 ? (
-                <div className="text-center p-12 bg-slate-900/50 rounded-xl border border-slate-800/50 text-slate-400">
+                <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--color-text-tertiary)', fontSize: 13 }}>
                     No operational events logged yet.
                 </div>
             ) : (
-                <div className="relative border-l border-slate-800 ml-4 space-y-8 pl-8 py-4">
+                <div style={{ position: 'relative', marginLeft: 16, borderLeft: '1px solid var(--color-border-subtle)', paddingLeft: 32, paddingBottom: 20, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 32 }}>
                     {events.map((evt, idx) => (
-                        <div key={evt.id || idx} className="relative group">
-                            {/* Line connecting marker */}
-                            <div className="absolute -left-8 -translate-x-1/2 top-4 w-10 border-t border-slate-800 group-hover:border-slate-600 transition-colors"></div>
+                        <div key={evt.id || idx} style={{ position: 'relative' }}>
+                            {/* Horizontal connector line */}
+                            <div style={{
+                                position: 'absolute',
+                                left: -32,
+                                top: 20,
+                                width: 32,
+                                height: 1,
+                                background: 'var(--color-border-subtle)',
+                                zIndex: 0
+                            }}></div>
 
                             {/* Icon Marker */}
-                            <div className="absolute -left-8 -translate-x-1/2 -translate-y-1/2 top-4 w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center z-10">
+                            <div style={{
+                                position: 'absolute',
+                                left: -32,
+                                top: 20,
+                                transform: 'translate(-50%, -50%)',
+                                width: 32,
+                                height: 32,
+                                borderRadius: '50%',
+                                background: 'var(--color-surface-1)',
+                                border: '1px solid var(--color-border-default)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                zIndex: 10,
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
+                            }}>
                                 {getIconForEvent(evt.event_type)}
                             </div>
 
-                            <div className={`p-4 rounded-xl border ${getSeverityColor(evt.severity)} shadow-sm transition-all bg-opacity-50 backdrop-blur-sm`}>
-                                <div className="flex justify-between items-start gap-4">
+                            <div className="card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12, ...getSeverityStyles(evt.severity) }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                                     <div>
-                                        <div className="text-slate-300 font-medium mb-1">
+                                        <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-primary)', marginBottom: 6 }}>
                                             {evt.message}
                                         </div>
-                                        <div className="flex gap-2 text-xs text-slate-400 font-mono flex-wrap">
-                                            <span className="bg-slate-900/60 px-2 py-0.5 rounded border border-slate-700/50">
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                            <span style={{
+                                                fontSize: 11,
+                                                padding: '2px 8px',
+                                                borderRadius: 6,
+                                                background: 'var(--color-surface-2)',
+                                                border: '1px solid var(--color-border-subtle)',
+                                                color: 'var(--color-text-secondary)',
+                                                fontFamily: 'monospace'
+                                            }}>
                                                 {getServerName(evt.server_id)}
                                             </span>
-                                            <span className="bg-slate-900/60 px-2 py-0.5 rounded border border-slate-700/50">
+                                            <span style={{
+                                                fontSize: 11,
+                                                padding: '2px 8px',
+                                                borderRadius: 6,
+                                                background: 'var(--color-surface-2)',
+                                                border: '1px solid var(--color-border-subtle)',
+                                                color: 'var(--color-text-secondary)',
+                                                fontFamily: 'monospace'
+                                            }}>
                                                 {evt.event_type}
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="text-xs text-slate-500 font-medium whitespace-nowrap">
+                                    <div style={{ fontSize: 11, color: 'var(--color-text-quaternary)', whiteSpace: 'nowrap', fontWeight: 500 }}>
                                         {new Date(evt.timestamp).toLocaleString()}
                                     </div>
                                 </div>
                                 {evt.metadata && (
-                                    <div className="mt-3 text-xs font-mono text-slate-400 bg-black/20 p-2 rounded overflow-x-auto border border-white/5">
+                                    <div style={{
+                                        marginTop: 4,
+                                        fontSize: 11,
+                                        fontFamily: 'monospace',
+                                        color: 'var(--color-text-tertiary)',
+                                        background: 'rgba(0,0,0,0.4)',
+                                        padding: '8px 12px',
+                                        borderRadius: 'var(--radius-sm)',
+                                        border: '1px solid var(--color-border-subtle)',
+                                        overflowX: 'auto'
+                                    }}>
                                         {evt.metadata}
                                     </div>
                                 )}

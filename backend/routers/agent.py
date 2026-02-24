@@ -46,19 +46,21 @@ async def agent_heartbeat(
         curr = row[0]["current_state"] if row and row[0]["current_state"] is not None else "unknown"
         
         if curr == "offline" or curr == "unknown":
-            await log_event(
-                server_id=heartbeat.server_id,
-                event_type="agent_online",
-                severity="info",
-                message=f"Agent {heartbeat.hostname} connected",
-                metadata={"version": heartbeat.agent_version, "ip": heartbeat.ip_address}
-            )
             await db.execute(
                 "UPDATE servers SET current_state = 'normal', previous_state = ?, state_changed_at = ? WHERE id = ?",
                 (curr, now, heartbeat.server_id)
             )
             
         await db.commit()
+
+    if curr == "offline" or curr == "unknown":
+        await log_event(
+            server_id=heartbeat.server_id,
+            event_type="agent_online",
+            severity="info",
+            message=f"Agent {heartbeat.hostname} connected",
+            metadata={"version": heartbeat.agent_version, "ip": heartbeat.ip_address}
+        )
 
     await bus.publish("server_status", {
         "server_id": heartbeat.server_id,

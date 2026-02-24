@@ -43,7 +43,8 @@ async def agent_heartbeat(
 
         # Log event: agent online if previously offline or new
         row = await db.execute_fetchall("SELECT current_state FROM servers WHERE id = ?", (heartbeat.server_id,))
-        curr = row[0]["current_state"] if row else "unknown"
+        curr = row[0]["current_state"] if row and row[0]["current_state"] is not None else "unknown"
+        
         if curr == "offline" or curr == "unknown":
             await log_event(
                 server_id=heartbeat.server_id,
@@ -56,7 +57,8 @@ async def agent_heartbeat(
                 "UPDATE servers SET current_state = 'normal', previous_state = ?, state_changed_at = ? WHERE id = ?",
                 (curr, now, heartbeat.server_id)
             )
-            await db.commit()
+            
+        await db.commit()
 
     await bus.publish("server_status", {
         "server_id": heartbeat.server_id,

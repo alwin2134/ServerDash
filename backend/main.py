@@ -20,6 +20,8 @@ from models import LoginRequest, TokenResponse
 from auth import authenticate_user, create_access_token, verify_ws_token
 from ws import manager, register_ws_events
 from core import setup_event_bus
+from core.agent_sweeper import sweep_offline_agents
+import asyncio
 
 # Routers
 from routers.metrics import router as metrics_router
@@ -33,6 +35,7 @@ from routers.alerts import router as alerts_router
 from routers.docker import router as docker_router
 from routers.agent_commands import router as agent_commands_router
 from routers.apps import router as apps_router
+from routers.events import router as events_router
 
 
 # ── Rate Limiting ─────────────────────────────────────────
@@ -89,6 +92,10 @@ async def lifespan(app: FastAPI):
     setup_event_bus()
     register_ws_events()
     await prune_old_alerts()
+    
+    # Start background agent sweeper
+    asyncio.create_task(sweep_offline_agents())
+    
     print("[serverdash] Database initialized, event bus wired.")
     yield
     print("[serverdash] Shutdown complete.")
@@ -125,6 +132,7 @@ app.include_router(alerts_router)
 app.include_router(docker_router)
 app.include_router(agent_commands_router)
 app.include_router(apps_router)
+app.include_router(events_router)
 
 
 # ── Auth endpoint ─────────────────────────────────────────

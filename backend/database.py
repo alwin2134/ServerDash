@@ -36,6 +36,9 @@ async def init_db() -> None:
                 status      TEXT DEFAULT 'unknown',
                 health_state TEXT DEFAULT 'unknown',
                 health_score INTEGER DEFAULT 0,
+                previous_state TEXT,
+                current_state TEXT,
+                state_changed_at TIMESTAMP,
                 last_seen   TIMESTAMP,
                 created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -100,6 +103,7 @@ async def init_db() -> None:
                 event_type  TEXT NOT NULL,
                 severity    TEXT DEFAULT 'info',
                 message     TEXT,
+                metadata    TEXT,
                 timestamp   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -112,6 +116,8 @@ async def init_db() -> None:
                 threshold   REAL,
                 message     TEXT NOT NULL,
                 acknowledged INTEGER DEFAULT 0,
+                resolved_at TIMESTAMP,
+                duration_seconds INTEGER,
                 timestamp   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -136,10 +142,16 @@ async def init_db() -> None:
                 ON events(server_id, timestamp DESC);
         """)
 
-        # Migration stubs for Phase 1 upgrades
+        # Migration stubs for Phase 1-5 upgrades
         for col_sql in [
             "ALTER TABLE servers ADD COLUMN health_state TEXT DEFAULT 'unknown'",
             "ALTER TABLE servers ADD COLUMN health_score INTEGER DEFAULT 0",
+            "ALTER TABLE servers ADD COLUMN previous_state TEXT",
+            "ALTER TABLE servers ADD COLUMN current_state TEXT",
+            "ALTER TABLE servers ADD COLUMN state_changed_at TIMESTAMP",
+            "ALTER TABLE alerts ADD COLUMN resolved_at TIMESTAMP",
+            "ALTER TABLE alerts ADD COLUMN duration_seconds INTEGER",
+            "ALTER TABLE events ADD COLUMN metadata TEXT",
         ]:
             try:
                 await db.execute(col_sql)

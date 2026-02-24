@@ -65,6 +65,9 @@ class ServerInfo(BaseModel):
     status: str = "unknown"
     health_state: str = "unknown"    # healthy | warning | degraded | critical | unknown
     health_score: int = 0            # 0–100
+    previous_state: Optional[str] = None
+    current_state: Optional[str] = None
+    state_changed_at: Optional[datetime] = None
     last_seen: Optional[datetime] = None
 
 
@@ -108,6 +111,18 @@ class HealthState(BaseModel):
     reasons: list[str] = []
 
 
+# ── Events ────────────────────────────────────────────────
+
+class Event(BaseModel):
+    id: int
+    server_id: Optional[str] = None
+    event_type: str
+    severity: str = "info"
+    message: str
+    metadata: Optional[str] = None
+    timestamp: datetime
+
+
 # ── Alerts ───────────────────────────────────────────────
 
 class AlertInfo(BaseModel):
@@ -119,6 +134,8 @@ class AlertInfo(BaseModel):
     threshold: float
     message: str
     acknowledged: bool = False
+    resolved_at: Optional[datetime] = None
+    duration_seconds: Optional[int] = None
     timestamp: Optional[datetime] = None
 
 

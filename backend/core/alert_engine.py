@@ -13,6 +13,7 @@ from typing import Any
 from health import THRESHOLDS
 from database import get_db
 from core.event_bus import bus
+from core.event_logger import log_event
 
 # Alert cooldown tracker: "server_id:metric" -> last alert time
 _last_alerts: dict[str, datetime] = {}
@@ -49,6 +50,29 @@ async def _on_health_changed(payload: dict[str, Any]) -> None:
                 severity = "warning"
                 threshold = thresh["warning"]
             else:
+                # Resolve active alerts for this metric if any
+                unresolved = await db.execute_fetchall(
+                    "SELECT id, timestamp FROM alerts WHERE server_id = ? AND metric = ? AND resolved_at IS NULL",
+                    (server_id, metric_name)
+                )
+                if unresolved:
+                    for u in unresolved:
+                        alert_id = u["id"]
+                        created_ts = datetime.fromisoformat(u["timestamp"]).replace(tzinfo=timezone.utc)
+                        duration = int((now_dt - created_ts).total_seconds())
+                        
+                        await db.execute(
+                            "UPDATE alerts SET resolved_at = ?, duration_seconds = ? WHERE id = ?",
+                            (now, duration, alert_id)
+                        )
+                        await log_event(
+                            server_id=server_id,
+                            event_type="alert_resolved",
+                            severity="info",
+                            message=f"{metric_name.upper()} alert resolved after {duration}s",
+                            metadata={"alert_id": alert_id, "duration": duration, "metric": metric_name}
+                        )
+                    await db.commit()
                 continue
 
             message = f"{metric_name.upper()} at {value:.1f}% (threshold: {threshold}%)"
@@ -60,10 +84,12 @@ async def _on_health_changed(payload: dict[str, Any]) -> None:
             _last_alerts[alert_key] = now_dt
 
             # Log event
-            await db.execute(
-                """INSERT INTO events (server_id, event_type, severity, message, timestamp)
-                   VALUES (?, 'alert_created', ?, ?, ?)""",
-                (server_id, severity, message, now),
+            await log_event(
+                server_id=server_id,
+                event_type="alert_created",
+                severity=severity,
+                message=message,
+                metadata={"metric": metric_name, "value": value}
             )
 
             await db.commit()
@@ -78,16 +104,12 @@ async def _on_health_changed(payload: dict[str, Any]) -> None:
                 "timestamp": now,
             })
 
-        # Log health state transition
-        if prev_state != new_state:
-            await db.execute(
-                """INSERT INTO events (server_id, event_type, severity, message, timestamp)
-                   VALUES (?, 'health_state_changed', ?, ?, ?)""",
-                (server_id, "info",
-                 f"Health state: {prev_state} → {new_state} (score: {payload['score']})",
-                 now),
-            )
-            await db.commit()
+        # Log health state transition if needed
+        # (This is mostly redundant now since health_engine logs it, 
+        # but we'll leave it as a secondary check or remove it. 
+        # Since Phase 5 uses state_changed logged in health_engine, 
+        # we can remove the manual health_state_changed here to avoid duplicates.)
+        pass
 
 
 def register() -> None:

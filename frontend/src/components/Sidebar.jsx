@@ -10,6 +10,7 @@ import {
     Download,
     Settings,
     Command,
+    Clock,
 } from 'lucide-react';
 import useServerStore from '../store/serverStore';
 
@@ -25,6 +26,7 @@ const mainNav = [
 const secondaryNav = [
     { to: '/apps', icon: Download, label: 'App Store' },
     { to: '/history', icon: BarChart3, label: 'History' },
+    { to: '/timeline', icon: Clock, label: 'Timeline' },
     { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 

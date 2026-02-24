@@ -13,6 +13,7 @@ from auth import require_api_key
 from database import get_db
 from models import AgentHeartbeat, AgentUpdate
 from core.event_bus import bus
+from core.event_logger import log_event
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
@@ -40,13 +41,22 @@ async def agent_heartbeat(
              heartbeat.os_info, heartbeat.agent_version, now),
         )
 
-        # Log event: agent online
-        await db.execute(
-            """INSERT INTO events (server_id, event_type, severity, message, timestamp)
-               VALUES (?, 'agent_online', 'info', ?, ?)""",
-            (heartbeat.server_id, f"Agent {heartbeat.hostname} connected", now),
-        )
-        await db.commit()
+        # Log event: agent online if previously offline or new
+        row = await db.execute_fetchall("SELECT current_state FROM servers WHERE id = ?", (heartbeat.server_id,))
+        curr = row[0]["current_state"] if row else "unknown"
+        if curr == "offline" or curr == "unknown":
+            await log_event(
+                server_id=heartbeat.server_id,
+                event_type="agent_online",
+                severity="info",
+                message=f"Agent {heartbeat.hostname} connected",
+                metadata={"version": heartbeat.agent_version, "ip": heartbeat.ip_address}
+            )
+            await db.execute(
+                "UPDATE servers SET current_state = 'normal', previous_state = ?, state_changed_at = ? WHERE id = ?",
+                (curr, now, heartbeat.server_id)
+            )
+            await db.commit()
 
     await bus.publish("server_status", {
         "server_id": heartbeat.server_id,

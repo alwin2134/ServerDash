@@ -145,3 +145,11 @@ export function installApp(serverId, appConfig) {
         body: JSON.stringify(appConfig),
     });
 }
+
+// Phase 5: Events Timeline
+export function getEvents(serverId = null, limit = 50, cursor = null) {
+    let q = `?limit=${limit}`;
+    if (serverId) q += `&server_id=${serverId}`;
+    if (cursor) q += `&cursor=${cursor}`;
+    return apiFetch(`/api/events${q}`);
+}

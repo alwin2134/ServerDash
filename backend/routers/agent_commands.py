@@ -40,25 +40,52 @@ async def get_pending_commands(
 @router.post("/commands/{command_id}/result")
 async def report_command_result(
     command_id: int,
+    request: Request,
     _key: str = Depends(require_api_key),
 ):
     """Agent reports command completion. Result in request body."""
-    from fastapi import Request
-    # We'll accept raw JSON body
-    import sys
-    # Simple approach: mark as done
+    # We accept a raw JSON body containing the command output/result
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+        
+    result_str = json.dumps(payload)
     now = datetime.now(timezone.utc).isoformat()
 
     async with get_db() as db:
         await db.execute(
             """UPDATE pending_commands
-               SET status = 'completed', completed_at = ?
+               SET status = 'completed', completed_at = ?, result = ?
                WHERE id = ?""",
-            (now, command_id),
+            (now, result_str, command_id),
         )
         await db.commit()
 
     return {"status": "ok"}
+
+
+@router.post("/servers/{server_id}/shell")
+async def queue_shell_command(
+    server_id: str,
+    payload: dict,
+):
+    """Add a shell command to be picked up by the agent. Requires JWT auth (handled implicitly by frontend routing/auth proxy normally, but here we just take the raw JSON)."""
+    command_str = payload.get("command", "")
+    if not command_str:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Missing command")
+
+    async with get_db() as db:
+        cursor = await db.execute(
+            """INSERT INTO pending_commands (server_id, command_type, payload)
+               VALUES (?, ?, ?)""",
+            (server_id, "shell", json.dumps({"command": command_str})),
+        )
+        command_id = cursor.lastrowid
+        await db.commit()
+
+    return {"status": "ok", "command_id": command_id}
 
 
 @router.post("/commands/{command_id}/complete")

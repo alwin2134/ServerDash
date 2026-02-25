@@ -11,6 +11,7 @@ import {
     Settings,
     Command,
     Clock,
+    TerminalSquare,
 } from 'lucide-react';
 import useServerStore from '../store/serverStore';
 
@@ -20,6 +21,7 @@ const mainNav = [
     { to: '/processes', icon: ListTree, label: 'Processes' },
     { to: '/ports', icon: Network, label: 'Ports' },
     { to: '/docker', icon: Box, label: 'Docker' },
+    { to: '/terminal', icon: TerminalSquare, label: 'Terminal' },
     { to: '/alerts', icon: Bell, label: 'Alerts', badge: true },
 ];
 

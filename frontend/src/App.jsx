@@ -11,6 +11,7 @@ import Docker from './pages/Docker';
 import History from './pages/History';
 import AppStore from './pages/AppStore';
 import Timeline from './pages/Timeline';
+import Terminal from './pages/Terminal';
 import useServerStore from './store/serverStore';
 
 function ProtectedRoute({ children }) {
@@ -39,6 +40,7 @@ export default function App() {
                 <Route path="apps" element={<AppStore />} />
                 <Route path="history" element={<History />} />
                 <Route path="timeline" element={<Timeline />} />
+                <Route path="terminal" element={<Terminal />} />
                 <Route path="alerts" element={<Alerts />} />
                 <Route path="settings" element={<Settings />} />
             </Route>

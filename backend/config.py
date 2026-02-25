@@ -62,3 +62,6 @@ AGENT_RATE_LIMIT_SECONDS = float(os.getenv("SERVERDASH_AGENT_RATE_LIMIT", "2")) 
 
 # WebSocket
 WS_MAX_CONNECTIONS = int(os.getenv("SERVERDASH_WS_MAX_CONNECTIONS", "100"))
+
+# AI Output / Terminal Intelligence
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")

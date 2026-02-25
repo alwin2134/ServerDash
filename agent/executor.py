@@ -58,6 +58,7 @@ async def execute_command(client: httpx.AsyncClient, cmd: dict) -> None:
     print(f"[executor] Running {cmd_type}: {payload}")
 
     try:
+        result_payload = {}
         if cmd_type == "docker_action":
             _exec_docker_action(payload)
         elif cmd_type == "docker_deploy":
@@ -72,18 +73,26 @@ async def execute_command(client: httpx.AsyncClient, cmd: dict) -> None:
             _exec_kill_process(payload)
         elif cmd_type == "apt_install":
             _exec_apt_install(payload)
+        elif cmd_type == "shell":
+            result_payload = _exec_shell(payload)
         else:
             print(f"[executor] Unknown command type: {cmd_type}")
 
-        # Mark complete
-        await client.post(f"{BASE}/api/agent/commands/{cmd_id}/complete")
+        # Mark complete with result
+        await client.post(
+            f"{BASE}/api/agent/commands/{cmd_id}/result",
+            json=result_payload
+        )
         print(f"[executor] Completed command {cmd_id}")
 
     except Exception as e:
         print(f"[executor] Command {cmd_id} failed: {e}")
         # Still mark as complete to avoid retrying forever
         try:
-            await client.post(f"{BASE}/api/agent/commands/{cmd_id}/complete")
+            await client.post(
+                f"{BASE}/api/agent/commands/{cmd_id}/result",
+                json={"error": str(e)}
+            )
         except Exception:
             pass
 
@@ -239,4 +248,37 @@ def _exec_apt_install(payload: dict) -> None:
         print(f"[executor] Package {package} installed successfully")
     else:
         print(f"[executor] apt install failed: {result.stderr[:500]}")
+
+
+def _exec_shell(payload: dict) -> dict:
+    """Execute an arbitrary shell command."""
+    command = payload["command"]
+    print(f"[executor] Executing shell command: {command}")
+    
+    try:
+        # Run safely with timeout
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True,
+            timeout=120  # 2 min timeout for shell commands
+        )
+        return {
+            "stdout": result.stdout,
+            "stderr": result.stderr,
+            "exit_code": result.returncode
+        }
+    except subprocess.TimeoutExpired as e:
+        return {
+            "stdout": e.stdout.decode() if e.stdout else "",
+            "stderr": e.stderr.decode() if e.stderr else "Command timed out after 120s",
+            "exit_code": -1
+        }
+    except Exception as e:
+        return {
+            "stdout": "",
+            "stderr": str(e),
+            "exit_code": -1
+        }
 

@@ -37,6 +37,7 @@ from routers.agent_commands import router as agent_commands_router
 from routers.apps import router as apps_router
 from routers.events import router as events_router
 from routers.insights import router as insights_router
+from routers.ai_terminal import router as ai_terminal_router
 
 
 # ── Rate Limiting ─────────────────────────────────────────
@@ -135,6 +136,7 @@ app.include_router(agent_commands_router)
 app.include_router(apps_router)
 app.include_router(events_router)
 app.include_router(insights_router)
+app.include_router(ai_terminal_router)
 
 
 # ── Auth endpoint ─────────────────────────────────────────

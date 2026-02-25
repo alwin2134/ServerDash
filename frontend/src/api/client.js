@@ -162,3 +162,25 @@ export function getInsights(serverId) {
 export function dismissInsight(insightId) {
     return apiFetch(`/api/insights/${insightId}`, { method: 'DELETE' });
 }
+
+// Phase 7: Terminal & AI
+export function runShellCommand(serverId, command) {
+    return apiFetch(`/api/agent/servers/${serverId}/shell`, {
+        method: 'POST',
+        body: JSON.stringify({ command }),
+    });
+}
+
+export function aiGenerateCommand(prompt, os_info) {
+    return apiFetch(`/api/ai/terminal/generate`, {
+        method: 'POST',
+        body: JSON.stringify({ prompt, os_info }),
+    });
+}
+
+export function aiExplainOutput(command, stdout, stderr, exit_code, os_info) {
+    return apiFetch(`/api/ai/terminal/explain`, {
+        method: 'POST',
+        body: JSON.stringify({ command, stdout, stderr, exit_code, os_info }),
+    });
+}

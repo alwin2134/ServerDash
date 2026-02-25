@@ -6,7 +6,7 @@ Agents poll this to get pending commands and report results.
 import json
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Request, HTTPException
-from auth import require_api_key
+from auth import require_api_key, require_jwt
 from database import get_db
 
 router = APIRouter(prefix="/api/agent", tags=["agent-commands"])
@@ -69,8 +69,9 @@ async def report_command_result(
 async def queue_shell_command(
     server_id: str,
     payload: dict,
+    _user: str = Depends(require_jwt),
 ):
-    """Add a shell command to be picked up by the agent. Requires JWT auth (handled implicitly by frontend routing/auth proxy normally, but here we just take the raw JSON)."""
+    """Add a shell command to be picked up by the agent. Requires JWT auth."""
     command_str = payload.get("command", "")
     if not command_str:
         from fastapi import HTTPException
@@ -111,7 +112,7 @@ async def complete_command(
 @router.get("/commands/{command_id}/status")
 async def get_command_status(
     command_id: int,
-    _key: str = Depends(require_api_key),
+    _user: str = Depends(require_jwt),
 ):
     """Check status of a specific command."""
     async with get_db() as db:

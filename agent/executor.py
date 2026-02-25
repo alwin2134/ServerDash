@@ -30,7 +30,7 @@ from config import DASHBOARD_URL, API_KEY, SERVER_ID
 
 BASE = DASHBOARD_URL.rstrip("/")
 HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
-POLL_INTERVAL = 3  # seconds
+POLL_INTERVAL = 1  # seconds (reduced for snappy terminal execution)
 
 
 async def executor_loop() -> None:
@@ -256,23 +256,28 @@ def _exec_shell(payload: dict) -> dict:
     print(f"[executor] Executing shell command: {command}")
     
     try:
-        # Run safely with timeout
+        # Better capture strategy that handles encoding safely
         result = subprocess.run(
             command,
             shell=True,
-            capture_output=True,
-            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             timeout=120  # 2 min timeout for shell commands
         )
+        # Decode gracefully
+        stdout = result.stdout.decode('utf-8', errors='replace').strip()
+        stderr = result.stderr.decode('utf-8', errors='replace').strip()
         return {
-            "stdout": result.stdout,
-            "stderr": result.stderr,
+            "stdout": stdout,
+            "stderr": stderr,
             "exit_code": result.returncode
         }
     except subprocess.TimeoutExpired as e:
+        stdout = e.stdout.decode('utf-8', errors='replace').strip() if e.stdout else ""
+        stderr = e.stderr.decode('utf-8', errors='replace').strip() if e.stderr else "Command timed out after 120s"
         return {
-            "stdout": e.stdout.decode() if e.stdout else "",
-            "stderr": e.stderr.decode() if e.stderr else "Command timed out after 120s",
+            "stdout": stdout,
+            "stderr": stderr,
             "exit_code": -1
         }
     except Exception as e:

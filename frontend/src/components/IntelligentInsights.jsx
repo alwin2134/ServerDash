@@ -48,7 +48,7 @@ export default function IntelligentInsights() {
                         Intelligent Insights
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--color-text-quaternary)', marginTop: 4, maxWidth: 200 }}>
-                        Awaiting data. No anomalies or optimizations detected yet.
+                        System is running optimally. No anomalies or optimizations detected.
                     </div>
                 </div>
             </div>

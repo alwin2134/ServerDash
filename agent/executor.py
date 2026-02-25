@@ -17,6 +17,8 @@ import os
 import signal
 import subprocess
 import sys
+import getpass
+import socket
 
 import httpx
 
@@ -271,9 +273,23 @@ def _exec_shell(payload: dict) -> dict:
             
         if os.path.isdir(new_dir):
             _SHELL_CWD = new_dir
-            return {"stdout": "", "stderr": "", "exit_code": 0}
+            return {
+                "stdout": "", 
+                "stderr": "", 
+                "exit_code": 0,
+                "cwd": _SHELL_CWD,
+                "user": getpass.getuser(),
+                "host": socket.gethostname()
+            }
         else:
-            return {"stdout": "", "stderr": f"cd: {target}: No such file or directory", "exit_code": 1}
+            return {
+                "stdout": "", 
+                "stderr": f"cd: {target}: No such file or directory", 
+                "exit_code": 1,
+                "cwd": _SHELL_CWD,
+                "user": getpass.getuser(),
+                "host": socket.gethostname()
+            }
 
     try:
         # Better capture strategy that handles encoding safely
@@ -291,7 +307,10 @@ def _exec_shell(payload: dict) -> dict:
         return {
             "stdout": stdout,
             "stderr": stderr,
-            "exit_code": result.returncode
+            "exit_code": result.returncode,
+            "cwd": _SHELL_CWD,
+            "user": getpass.getuser(),
+            "host": socket.gethostname()
         }
     except subprocess.TimeoutExpired as e:
         stdout = e.stdout.decode('utf-8', errors='replace').strip() if e.stdout else ""
@@ -299,12 +318,18 @@ def _exec_shell(payload: dict) -> dict:
         return {
             "stdout": stdout,
             "stderr": stderr,
-            "exit_code": -1
+            "exit_code": -1,
+            "cwd": _SHELL_CWD,
+            "user": getpass.getuser(),
+            "host": socket.gethostname()
         }
     except Exception as e:
         return {
             "stdout": "",
             "stderr": str(e),
-            "exit_code": -1
+            "exit_code": -1,
+            "cwd": _SHELL_CWD,
+            "user": getpass.getuser(),
+            "host": socket.gethostname()
         }
 

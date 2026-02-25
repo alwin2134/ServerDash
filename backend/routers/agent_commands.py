@@ -5,7 +5,7 @@ Agents poll this to get pending commands and report results.
 
 import json
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, HTTPException
 from auth import require_api_key
 from database import get_db
 

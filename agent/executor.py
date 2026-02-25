@@ -32,6 +32,8 @@ BASE = DASHBOARD_URL.rstrip("/")
 HEADERS = {"X-API-Key": API_KEY, "Content-Type": "application/json"}
 POLL_INTERVAL = 1  # seconds (reduced for snappy terminal execution)
 
+# Track shell working directory for stateful terminal commands
+_SHELL_CWD = os.path.expanduser("~")
 
 async def executor_loop() -> None:
     """Poll for commands and execute them."""
@@ -251,15 +253,34 @@ def _exec_apt_install(payload: dict) -> None:
 
 
 def _exec_shell(payload: dict) -> dict:
-    """Execute an arbitrary shell command."""
-    command = payload["command"]
-    print(f"[executor] Executing shell command: {command}")
+    """Execute an arbitrary shell command safely with stateful cwd."""
+    global _SHELL_CWD
+    command = payload["command"].strip()
+    print(f"[executor] Executing shell command: {command} in {_SHELL_CWD}")
     
+    # Manually intercept 'cd' to maintain stateful directory changes
+    if command.startswith("cd ") or command == "cd":
+        target = command[3:].strip()
+        if not target or target == "~":
+            target = os.path.expanduser("~")
+            
+        if os.path.isabs(target):
+            new_dir = target
+        else:
+            new_dir = os.path.normpath(os.path.join(_SHELL_CWD, target))
+            
+        if os.path.isdir(new_dir):
+            _SHELL_CWD = new_dir
+            return {"stdout": "", "stderr": "", "exit_code": 0}
+        else:
+            return {"stdout": "", "stderr": f"cd: {target}: No such file or directory", "exit_code": 1}
+
     try:
         # Better capture strategy that handles encoding safely
         result = subprocess.run(
             command,
             shell=True,
+            cwd=_SHELL_CWD,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=120  # 2 min timeout for shell commands

@@ -26,6 +26,9 @@ async def sweep_offline_agents():
             threshold_dt = now_dt - timedelta(seconds=OFFLINE_THRESHOLD_SECONDS)
             threshold_str = threshold_dt.isoformat()
             
+            events_to_log = []
+            events_to_publish = []
+            
             async with get_db() as db:
                 # Find servers marked online but stale
                 rows = await db.execute_fetchall(
@@ -43,16 +46,16 @@ async def sweep_offline_agents():
                         (curr_state, now, server_id)
                     )
                     
-                    await log_event(
-                        server_id=server_id,
-                        event_type="agent_offline",
-                        severity="critical",
-                        message=f"Agent {hostname} went offline",
-                        metadata={"previous_state": curr_state}
-                    )
+                    events_to_log.append({
+                        "server_id": server_id,
+                        "event_type": "agent_offline",
+                        "severity": "critical",
+                        "message": f"Agent {hostname} went offline",
+                        "metadata": {"previous_state": curr_state}
+                    })
                     
                     # Broadcast status change
-                    await bus.publish("server_status", {
+                    events_to_publish.append({
                         "server_id": server_id,
                         "hostname": hostname,
                         "status": "offline",
@@ -62,6 +65,12 @@ async def sweep_offline_agents():
                 if rows:
                     await db.commit()
                     
+            for e in events_to_log:
+                await log_event(**e)
+                
+            for p in events_to_publish:
+                await bus.publish("server_status", p)
+                
         except Exception as e:
             print(f"[sweeper] Error in sweep loop: {e}")
             

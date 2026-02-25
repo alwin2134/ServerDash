@@ -36,6 +36,9 @@ async def _on_health_changed(payload: dict[str, Any]) -> None:
         ("disk", metrics.get("disk_percent", 0), THRESHOLDS["disk"]),
     ]
 
+    events_to_log = []
+    events_to_publish = []
+
     async with get_db() as db:
         for metric_name, value, thresh in alert_checks:
             alert_key = f"{server_id}:{metric_name}"
@@ -65,13 +68,13 @@ async def _on_health_changed(payload: dict[str, Any]) -> None:
                             "UPDATE alerts SET resolved_at = ?, duration_seconds = ? WHERE id = ?",
                             (now, duration, alert_id)
                         )
-                        await log_event(
-                            server_id=server_id,
-                            event_type="alert_resolved",
-                            severity="info",
-                            message=f"{metric_name.upper()} alert resolved after {duration}s",
-                            metadata={"alert_id": alert_id, "duration": duration, "metric": metric_name}
-                        )
+                        events_to_log.append({
+                            "server_id": server_id,
+                            "event_type": "alert_resolved",
+                            "severity": "info",
+                            "message": f"{metric_name.upper()} alert resolved after {duration}s",
+                            "metadata": {"alert_id": alert_id, "duration": duration, "metric": metric_name}
+                        })
                     await db.commit()
                 continue
 
@@ -83,18 +86,18 @@ async def _on_health_changed(payload: dict[str, Any]) -> None:
             )
             _last_alerts[alert_key] = now_dt
 
-            # Log event
-            await log_event(
-                server_id=server_id,
-                event_type="alert_created",
-                severity=severity,
-                message=message,
-                metadata={"metric": metric_name, "value": value}
-            )
+            # Queue log event
+            events_to_log.append({
+                "server_id": server_id,
+                "event_type": "alert_created",
+                "severity": severity,
+                "message": message,
+                "metadata": {"metric": metric_name, "value": value}
+            })
 
             await db.commit()
 
-            await bus.publish("alert_created", {
+            events_to_publish.append({
                 "server_id": server_id,
                 "severity": severity,
                 "metric": metric_name,
@@ -103,6 +106,13 @@ async def _on_health_changed(payload: dict[str, Any]) -> None:
                 "message": message,
                 "timestamp": now,
             })
+
+    # Dispatch out-of-transaction
+    for e in events_to_log:
+        await log_event(**e)
+        
+    for p in events_to_publish:
+        await bus.publish("alert_created", p)
 
         # Log health state transition if needed
         # (This is mostly redundant now since health_engine logs it, 

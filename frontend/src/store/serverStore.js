@@ -8,7 +8,7 @@ import { create } from 'zustand';
 const useServerStore = create((set, get) => ({
     // Server list
     servers: [],
-    activeServerId: null,
+    activeServerId: localStorage.getItem('serverdash_active_server') || null,
 
     setServers: (servers) => {
         const state = get();
@@ -16,6 +16,10 @@ const useServerStore = create((set, get) => ({
             servers,
             activeServerId: state.activeServerId || (servers.length > 0 ? servers[0].id : null),
         });
+        // Sync to localStorage
+        if (state.activeServerId || servers.length > 0) {
+            localStorage.setItem('serverdash_active_server', state.activeServerId || (servers.length > 0 ? servers[0].id : null));
+        }
     },
 
     upsertServer: (serverData) => {
@@ -31,13 +35,19 @@ const useServerStore = create((set, get) => ({
             newServers = [...state.servers, server];
         }
 
+        const newActive = state.activeServerId || server.id;
+        localStorage.setItem('serverdash_active_server', newActive);
+
         set({
             servers: newServers,
-            activeServerId: state.activeServerId || server.id
+            activeServerId: newActive
         });
     },
 
-    setActiveServer: (id) => set({ activeServerId: id }),
+    setActiveServer: (id) => {
+        localStorage.setItem('serverdash_active_server', id);
+        set({ activeServerId: id });
+    },
 
     // Real-time data
     metrics: {},

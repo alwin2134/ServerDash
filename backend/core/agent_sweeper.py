@@ -21,11 +21,16 @@ async def sweep_offline_agents():
             now_dt = datetime.now(timezone.utc)
             now = now_dt.isoformat()
             
+            # Use timedelta to compute threshold ISO string for accurate comparison against last_seen
+            from datetime import timedelta
+            threshold_dt = now_dt - timedelta(seconds=OFFLINE_THRESHOLD_SECONDS)
+            threshold_str = threshold_dt.isoformat()
+            
             async with get_db() as db:
                 # Find servers marked online but stale
-                # Using SQLite datetime('now', '-30 seconds') compares against UTC CURRENT_TIMESTAMP
                 rows = await db.execute_fetchall(
-                    f"SELECT id, hostname, current_state FROM servers WHERE status = 'online' AND last_seen < datetime('now', '-{OFFLINE_THRESHOLD_SECONDS} seconds')"
+                    "SELECT id, hostname, current_state FROM servers WHERE status = 'online' AND last_seen < ?",
+                    (threshold_str,)
                 )
                 
                 for r in rows:

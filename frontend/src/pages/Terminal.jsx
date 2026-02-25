@@ -13,6 +13,11 @@ export default function Terminal() {
     const [runningCmdId, setRunningCmdId] = useState(null);
     const [isPolling, setIsPolling] = useState(false);
 
+    // Dynamic shell state
+    const [shellUser, setShellUser] = useState(null);
+    const [shellHost, setShellHost] = useState(null);
+    const [shellDir, setShellDir] = useState('~');
+
     // AI States
     const [isGenerating, setIsGenerating] = useState(false);
     const [isExplaining, setIsExplaining] = useState(false);
@@ -53,6 +58,11 @@ export default function Terminal() {
                         appendHistory('stdout', `Exited with code ${res.exit_code || 0}`);
                     }
 
+                    // Update Prompt State
+                    if (res.user) setShellUser(res.user);
+                    if (res.host) setShellHost(res.host);
+                    if (res.cwd) setShellDir(res.cwd);
+
                     // Small delay, then focus input
                     setTimeout(() => inputRef.current?.focus(), 100);
                 }
@@ -76,7 +86,12 @@ export default function Terminal() {
         const cmd = input.trim();
         if (!cmd || !activeServerId || isPolling) return;
 
-        appendHistory('cmd', `$ ${cmd}`);
+        // Display the interactive prompt history
+        const promptString = shellUser && shellHost
+            ? `${shellUser}@${shellHost}:${shellDir}$`
+            : '$';
+
+        appendHistory('cmd', `${promptString} ${cmd}`);
         setInput('');
         setIsPolling(true);
         setShowAiInput(false);
@@ -308,9 +323,19 @@ export default function Terminal() {
                     <form onSubmit={handleRunCommand} style={{ display: 'flex', gap: 8 }}>
                         <div style={{
                             flex: 1, display: 'flex', alignItems: 'center', gap: 8,
-                            background: '#0d1117', border: '1px solid #30363d', borderRadius: 6, padding: '8px 12px'
+                            background: '#0d1117', border: '1px solid #30363d', borderRadius: 6, padding: '8px 12px',
+                            fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace", fontSize: 13
                         }}>
-                            <span style={{ color: '#3fb950', fontWeight: 'bold' }}>$</span>
+                            {shellUser && shellHost ? (
+                                <span style={{ whiteSpace: 'nowrap' }}>
+                                    <span style={{ color: '#3fb950', fontWeight: 'bold' }}>{shellUser}@{shellHost}</span>
+                                    <span style={{ color: '#d2a8ff' }}>:</span>
+                                    <span style={{ color: '#79c0ff' }}>{shellDir}</span>
+                                    <span style={{ color: '#c9d1d9', marginLeft: 4 }}>$</span>
+                                </span>
+                            ) : (
+                                <span style={{ color: '#3fb950', fontWeight: 'bold' }}>$</span>
+                            )}
                             <input
                                 ref={inputRef}
                                 value={input}

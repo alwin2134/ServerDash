@@ -17,7 +17,15 @@ Agent A  B   C   (Python + psutil)
 
 ## Quick Start
 
-### 1. Backend
+### 1. Automated One-Line Install (Recommended for Linux)
+
+```bash
+curl -sL https://raw.githubusercontent.com/alwin2134/ServerDash/main/setup.sh | sudo bash
+```
+
+> This downloads and installs ServerDash as a background systemd service with Caddy reverse proxy automatically.
+
+### 2. Manual Start - Backend
 
 ```bash
 cd backend
@@ -27,7 +35,9 @@ python -m uvicorn main:app --reload --port 8100
 
 > On first run, the dashboard prints a generated API key. Copy it for the agent.
 
-### 2. Agent
+> On first run, the dashboard prints a generated API key. Copy it for the agent.
+
+### 3. Manual Start - Agent
 
 ```bash
 cd agent
@@ -40,7 +50,11 @@ set SERVERDASH_API_KEY=<your-key>          # Windows
 python agent.py
 ```
 
-### 3. Frontend
+python agent.py
+
+```
+
+### 4. Manual Start - Frontend
 
 ```bash
 cd frontend
